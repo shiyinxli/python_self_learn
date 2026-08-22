@@ -1,4 +1,4 @@
-from task9_normalizeSensorData import normalize_sensor_data
+from task13_replaceDictionarywithDataModel import normalize_sensor_data
 def validate_sensor_data(data):
     if not isinstance(data, dict):
         return False, "data is not dictionary type"

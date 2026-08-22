@@ -1,5 +1,6 @@
 import pytest
 from task11_processABatchOfSensorData import validate_sensor_data, process_sensor_batch
+from task13_replaceDictionarywithDataModel import normalize_sensor_data
 
 def test_valid_celciusData():
     validation, message = validate_sensor_data({
@@ -62,9 +63,9 @@ def test_process_sensor_batch():
 ])
     assert len(result["successful"]) == 2
     assert len(result["failed"]) == 2
-    assert result["successful"][1]["sensor"] == "engine_temperature"
-    assert result["successful"][1]["value"] == pytest.approx(85.4, rel=1e-9, abs=1e-12)
-    assert result["successful"][1]["unit"] == "C"
+    assert result["successful"][1].sensor == "engine_temperature"
+    assert result["successful"][1].value == pytest.approx(85.4, rel=1e-9, abs=1e-12)
+    assert result["successful"][1].unit == "C"
 
 
 
