@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 @dataclass
@@ -11,21 +11,19 @@ class Measurement:
 class Sensor:
     id: str
     name: str
-    measurements: list[Measurement]
+    measurements: list[Measurement] = field(default_factory = list)
 
 @dataclass
 class Machine:
     id: str
     name: str
-    sensors: list[Sensor]
+    sensors: list[Sensor] = field(default_factory=list)
 
 def add_sensor(machine: Machine, sensor: Sensor) -> None:
     machine.sensors.append(sensor)
-    return
 
 def add_measurement(sensor: Sensor, measurement: Measurement) -> None:
     sensor.measurements.append(measurement)
-    return
 
 def get_sensor(machine: Machine, sensor_id: str) -> Sensor | None:
     for sensor in machine.sensors:
