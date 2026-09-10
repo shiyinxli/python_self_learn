@@ -11,6 +11,7 @@ class Measurement:
 class Sensor:
     id: str
     name: str
+    machine_id: str
     measurements: list[Measurement] = field(default_factory = list)
 
 @dataclass

@@ -1,11 +1,12 @@
 import sqlite3
 from sqlite3 import Error
-from task15_modelARealDomain import Machine
+from task15_modelARealDomain import Machine, Sensor, Measurement
 
 def create_connection():
     try:
         conn = sqlite3.connect(':memory:')
         # print(f"Connected to SQLite database: {db_file}")
+        conn.execute("PRAGMA foreign_keys = ON")
         return conn
     except Error as e:
         print(f"Error connecting to database: {e}")
@@ -92,6 +93,51 @@ def get_machine_objects(conn) -> list[Machine]:
         return machines
     except Error as e:
         return machines
+    
+def insert_sensor(conn, name: str, machine_id: int):
+    if not isinstance(name, str) or not name.strip() or not isinstance(machine_id, int):
+        print("Invalid name or machine id")
+        return
+    try:
+        sql_insert = "INSERT INTO sensors (name, machine_id) VALUES (?,?)"
+        conn.execute(sql_insert, (name.strip(), machine_id))
+        conn.commit()
+        print(f"Sensor '{name}' added successfully.")
+    except Error as e:
+        print(f"Error inserting sensors: {e}")
+
+def row_to_sensor(row) -> Sensor:
+    sensor_id = str(row[0])
+    name = row[1]
+    machine_id = str(row[2])
+    measurements = []
+    sensor = Sensor(sensor_id, name, machine_id, measurements)
+    return sensor
+
+def get_sensor_objects(conn) -> list[Sensor]:
+    try:
+        sensors = []
+        cursor = conn.execute("SELECT id, name, machine_id FROM sensors" ) 
+        rows = cursor.fetchall()
+        for row in rows:
+            sensor = row_to_sensor(row)
+            sensors.append(sensor)
+        return sensors
+    except Error as e:
+        return sensors
+
+def get_machines_with_sensors(conn) -> list[Machine]:
+    machines = get_machine_objects(conn)
+    cursor = conn.execute("SELECT id, name, machine_id FROM sensors")
+    sensors = get_sensor_objects(conn)
+    for machine in machines:
+        machine_id = machine.id
+        for sensor in sensors:
+            if sensor.machine_id == machine_id:
+                machine.sensors.append(sensor)
+    return machines
+
+
 
 
 
