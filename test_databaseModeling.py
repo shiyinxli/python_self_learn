@@ -1,6 +1,8 @@
-from task18_databaseModeling import create_table, create_connection, get_machines, insert_machine, row_to_machine, get_machine_objects, insert_sensor, get_sensor_objects, get_machines_with_sensors
+from task18_databaseModeling import create_table, create_connection, get_machines, insert_machine, row_to_machine, get_machine_objects, insert_sensor, get_sensor_objects, get_machines_with_sensors, insert_measurement, get_measurement_objects, get_complete_machines
+                                     
 from task15_modelARealDomain import Machine
 import pytest
+from datetime import datetime
 
 @pytest.fixture
 def db_conn():
@@ -128,3 +130,90 @@ def test_get_machines_with_no_sensor(db_conn):
 def test_get_machines_with_sensors_empty_database(db_conn):
     machines = get_machines_with_sensors(db_conn)
     assert len(machines) == 0
+
+def test_insert_one_measurement(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_sensor(db_conn, "Temperature", 1)    
+    insert_measurement(db_conn, 33.4, "C", 1, "2026-09-10 10:00:00")
+    measurements = get_measurement_objects(db_conn)
+    assert len(measurements) == 1
+    assert isinstance(measurements[0].timestamp, datetime)
+    assert measurements[0].timestamp == datetime.strptime(
+    "2026-09-10 10:00:00",
+    "%Y-%m-%d %H:%M:%S"
+)
+    assert measurements[0].value == 33.4
+
+def test_empty_measurement_table(db_conn):
+    measurements = get_measurement_objects(db_conn)
+    assert measurements == []
+
+def test_invalid_sensorId_insert_measurements(db_conn):
+    insert_measurement(db_conn, 33.4, "C", 1, "2026-09-10 10:00:00")
+    measurements = get_measurement_objects(db_conn)
+    assert measurements == []
+
+def test_insert_multiple_measurements(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_sensor(db_conn, "Temperature", 1)    
+    insert_measurement(db_conn, 33.4, "C", 1, "2026-09-10 10:00:00")
+    insert_measurement(db_conn, 33.1, "C", 1, "2026-09-10 11:00:00")
+    insert_measurement(db_conn, 35, "C", 1, "2026-09-10 10:00:00")
+    measurements = get_measurement_objects(db_conn)
+    assert len(measurements) == 3
+
+
+def test_one_machine_one_sensor_one_measurement(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_sensor(db_conn, "Temperature", 1)    
+    insert_measurement(db_conn, 33.4, "C", 1, "2026-09-10 10:00:00")
+    machines = get_complete_machines(db_conn)
+    assert machines[0].sensors[0].measurements[0].value == 33.4
+
+def test_one_machine_multiple_sensors_multiple_measurements(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_sensor(db_conn, "Temperature", 1) 
+    insert_sensor(db_conn, "Pressure", 1)   
+    insert_measurement(db_conn, 33.4, "C", 1, "2026-09-10 10:00:00")
+    insert_measurement(db_conn, 100, "P", 2, "2026-09-10 12:00:00")
+    machines = get_complete_machines(db_conn)
+    assert machines[0].sensors[0].measurements[0].value == 33.4
+    assert machines[0].sensors[1].measurements[0].value == 100
+
+def test_two_machine_multiple_sensors_multiple_measurements(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_machine(db_conn, "MachineB")
+    insert_sensor(db_conn, "Temperature", 1) 
+    insert_sensor(db_conn, "Pressure", 2)   
+    insert_measurement(db_conn, 33.4, "C", 1, "2026-09-10 10:00:00")
+    insert_measurement(db_conn, 100, "P", 2, "2026-09-10 12:00:00")
+    machines = get_complete_machines(db_conn)
+    assert machines[0].sensors[0].measurements[0].value == 33.4
+    assert machines[1].sensors[0].measurements[0].value == 100
+
+def test_sensor_with_no_measurements(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_sensor(db_conn, "Temperature", 1) 
+    insert_sensor(db_conn, "Pressure", 1)  
+    machines = get_complete_machines(db_conn)
+    assert not machines[0].sensors[0].measurements
+
+def test_machine_with_no_sensors(db_conn):
+    insert_machine(db_conn, "MachineA")
+    machines = get_complete_machines(db_conn)
+    assert not machines[0].sensors
+
+def test_empty_machines(db_conn):
+    machines = get_complete_machines(db_conn)
+    assert not machines
+
+def test_verify_actual_values_timestamps(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_sensor(db_conn, "Temperature", 1)    
+    insert_measurement(db_conn, 33.4, "C", 1, "2026-09-10 10:00:00") 
+    machines = get_complete_machines(db_conn)
+    assert machines[0].sensors[0].measurements[0].value == 33.4
+    assert machines[0].sensors[0].measurements[0].timestamp == datetime.strptime(
+        "2026-09-10 10:00:00",
+        "%Y-%m-%d %H:%M:%S"
+    )

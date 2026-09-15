@@ -5,6 +5,7 @@ from datetime import datetime
 class Measurement:
     value: float
     unit: str
+    sensor_id: str
     timestamp: datetime
 
 @dataclass

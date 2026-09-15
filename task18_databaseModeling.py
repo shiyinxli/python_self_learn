@@ -1,6 +1,7 @@
 import sqlite3
 from sqlite3 import Error
 from task15_modelARealDomain import Machine, Sensor, Measurement
+from datetime import datetime
 
 def create_connection():
     try:
@@ -98,6 +99,12 @@ def insert_sensor(conn, name: str, machine_id: int):
     if not isinstance(name, str) or not name.strip() or not isinstance(machine_id, int):
         print("Invalid name or machine id")
         return
+    cursor = conn.execute("SELECT id FROM machines")
+    rows = cursor.fetchall()
+    machine_ids = [row[0] for row in rows]
+    if not machine_id in machine_ids:
+        print("invalid machine id")
+        return
     try:
         sql_insert = "INSERT INTO sensors (name, machine_id) VALUES (?,?)"
         conn.execute(sql_insert, (name.strip(), machine_id))
@@ -128,7 +135,6 @@ def get_sensor_objects(conn) -> list[Sensor]:
 
 def get_machines_with_sensors(conn) -> list[Machine]:
     machines = get_machine_objects(conn)
-    cursor = conn.execute("SELECT id, name, machine_id FROM sensors")
     sensors = get_sensor_objects(conn)
     for machine in machines:
         machine_id = machine.id
@@ -136,6 +142,88 @@ def get_machines_with_sensors(conn) -> list[Machine]:
             if sensor.machine_id == machine_id:
                 machine.sensors.append(sensor)
     return machines
+
+def insert_measurement(conn,
+                       value: float,
+                       unit: str,
+                       sensor_id: int,
+                       timestamp: str):
+    cursor = conn.execute("SELECT id FROM sensors")
+    rows = cursor.fetchall()
+    sensor_ids = [row[0] for row in rows]
+    if not sensor_id in sensor_ids:
+        print("invalid sensor id")
+        return
+    try:
+        sql_insert = "INSERT INTO measurements (value, unit, sensor_id, timestamp) VALUES (?,?,?,?)"
+        conn.execute(sql_insert, (value, unit.strip(), sensor_id, timestamp))
+        conn.commit()
+    except Error as e:
+        print(f"Error inserting sensors: {e}")  
+
+
+def row_to_measurement(row) -> Measurement:
+    value = row[1]
+    unit = row[2]
+    sensor_id = str(row[3])
+    timestamp_str = row[4]  
+    timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+    measurement = Measurement(value, unit, sensor_id, timestamp)
+    return measurement
+
+def get_measurement_objects(conn) -> list[Measurement]:
+    try:
+        measurements = []
+        cursor = conn.execute("SELECT id, value, unit, sensor_id, timestamp FROM measurements")
+        rows = cursor.fetchall()
+        for row in rows:
+            measurement = row_to_measurement(row)
+            measurements.append(measurement)
+        return measurements
+    except Error as e:
+        print(f"{e}")
+        return measurements
+
+def get_complete_machines(conn) -> list[Machine]:
+    machines = get_machines_with_sensors(conn)
+    measurements = get_measurement_objects(conn)
+    for measurement in measurements:
+        sensor_id = measurement.sensor_id
+        for machine in machines:
+            for sensor in machine.sensors:
+                if sensor.id == sensor_id:
+                    sensor.measurements.append(measurement)
+                    break
+    return machines
+
+def find_machine_by_id(
+        machines: list[Machine],
+        machine_id: str
+) -> Machine | None:
+    for machine in machines:
+        if machine.id == machine_id:
+            return machine
+    return None
+
+def find_sensor_by_id(
+        machines: list[Machine],
+        sensor_id: str
+) -> Sensor | None:
+    for machine in machines:
+        for sensor in machine.sensors:
+            if sensor.id == sensor_id:
+                return sensor
+    return None
+
+def get_measurements_for_sensor(
+        machines: list[Machine],
+        sensor_id: str
+) -> list[Measurement]:
+    for machine in machines:
+        for sensor in machine.sensors:
+            if sensor.id == sensor_id:
+                return sensor.measurements
+    return []
 
 
 
