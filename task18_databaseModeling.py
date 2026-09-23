@@ -225,6 +225,63 @@ def get_measurements_for_sensor(
                 return sensor.measurements
     return []
 
+def get_average_for_sensor(
+        machines: list[Machine],
+        sensor_id: str
+) -> float | None:
+    measurements = get_measurements_for_sensor(machines, sensor_id)
+    if measurements:
+        total = 0
+        n = 0
+        for measurement in measurements:
+            total += measurement.value
+            n += 1
+        average = total / n
+        return average
+    return None
+
+def get_highest_measurement_for_sensor(
+        machines: list[Machine],
+        sensor_id: str
+) -> Measurement | None:
+    measurements = get_measurements_for_sensor(machines, sensor_id)
+    if measurements:
+        highest = measurements[0]
+        for measurement in measurements:
+            if measurement.value > highest.value:
+                highest = measurement
+        return highest
+    return None
+
+def find_sensors_by_name(
+        machines: list[Machine],
+        sensor_name: str
+) -> list[Sensor]:
+    sensors = []
+    if machines:
+        for machine in machines:
+            for sensor in machine.sensors:
+                if sensor.name == sensor_name:
+                    sensors.append(sensor)
+    return sensors
+
+def get_average_for_sensor_name(
+        machines: list[Machine],
+        sensor_name: str
+) -> float | None:
+    sensors = find_sensors_by_name(machines, sensor_name)
+    if sensors:
+        total = 0
+        n = 0
+        for sensor in sensors:
+            if sensor.measurements:
+                for measurement in sensor.measurements:
+                    total += measurement.value
+                    n += 1
+        if n:
+            return total / n
+    return None
+
 
 
 

@@ -1,4 +1,5 @@
-from task18_databaseModeling import create_table, create_connection, get_machines, insert_machine, row_to_machine, get_machine_objects, insert_sensor, get_sensor_objects, get_machines_with_sensors, insert_measurement, get_measurement_objects, get_complete_machines
+from task18_databaseModeling import (create_table, create_connection, get_machines, insert_machine, row_to_machine, get_machine_objects, insert_sensor, get_sensor_objects, get_machines_with_sensors, insert_measurement, get_measurement_objects, 
+                                     get_complete_machines, get_average_for_sensor, get_highest_measurement_for_sensor, find_sensors_by_name, get_average_for_sensor_name)
                                      
 from task15_modelARealDomain import Machine
 import pytest
@@ -217,3 +218,123 @@ def test_verify_actual_values_timestamps(db_conn):
         "2026-09-10 10:00:00",
         "%Y-%m-%d %H:%M:%S"
     )
+
+def test_average_for_existing_sensor(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_sensor(db_conn, "Temperature", 1)    
+    insert_measurement(db_conn, 33.4, "C", 1, "2026-09-10 10:00:00") 
+    insert_measurement(db_conn, 32.4, "C", 1, "2026-09-10 10:00:00")
+    insert_measurement(db_conn, 34.4, "C", 1, "2026-09-10 10:00:00") 
+    machines = get_complete_machines(db_conn)
+    average = get_average_for_sensor(machines, "1")
+    assert average == 33.4
+
+def test_average_for_nonexistent_sensor(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_sensor(db_conn, "Temperature", 1)    
+    insert_measurement(db_conn, 33.4, "C", 1, "2026-09-10 10:00:00") 
+    machines = get_complete_machines(db_conn)
+    average = get_average_for_sensor(machines, "5")
+    assert average is None
+
+def test_average_for_sensor_with_no_measurements(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_sensor(db_conn, "Temperature", 1)    
+    machines = get_complete_machines(db_conn)
+    average = get_average_for_sensor(machines, "1")
+    assert average is None
+
+def test_highest_measurement_for_existing_sensor(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_sensor(db_conn, "Temperature", 1)    
+    insert_measurement(db_conn, 33.4, "C", 1, "2026-09-10 10:00:00") 
+    insert_measurement(db_conn, 32.4, "C", 1, "2026-09-10 10:00:00")
+    insert_measurement(db_conn, 34.4, "C", 1, "2026-09-10 10:00:00") 
+    machines = get_complete_machines(db_conn)
+    highest = get_highest_measurement_for_sensor(machines, "1")
+    assert highest.value == 34.4
+
+def test_highest_for_nonexistent_sensor(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_sensor(db_conn, "Temperature", 1)    
+    insert_measurement(db_conn, 33.4, "C", 1, "2026-09-10 10:00:00") 
+    insert_measurement(db_conn, 32.4, "C", 1, "2026-09-10 10:00:00")
+    insert_measurement(db_conn, 34.4, "C", 1, "2026-09-10 10:00:00") 
+    machines = get_complete_machines(db_conn)
+    highest = get_highest_measurement_for_sensor(machines, "2")
+    assert highest is None
+
+def test_highest_for_sensors_with_no_measurements(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_sensor(db_conn, "Temperature", 1) 
+    machines = get_complete_machines(db_conn)
+    highest = get_highest_measurement_for_sensor(machines, "1")
+    assert highest is None 
+
+
+def test_find_one_sensor_by_name(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_sensor(db_conn, "Temperature", 1)    
+    insert_measurement(db_conn, 33, "C", 1, "2026-09-10 10:00:00") 
+    insert_measurement(db_conn, 35, "C", 1, "2026-09-10 10:00:00")  
+    insert_machine(db_conn, "MachineB")
+    insert_sensor(db_conn, "Temperature", 2)    
+    insert_measurement(db_conn, 29, "C", 2, "2026-09-10 10:00:00") 
+    insert_measurement(db_conn, 31, "C", 2, "2026-09-10 10:00:00")  
+    machines = get_complete_machines(db_conn)
+    sensors = find_sensors_by_name(machines, "Temperature")
+    assert len(sensors) == 2
+    assert sensors[0].name == "Temperature"
+    assert sensors[1].id == "2"
+
+def test_no_matching_sensor(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_sensor(db_conn, "Temperature", 1)    
+    insert_measurement(db_conn, 33, "C", 1, "2026-09-10 10:00:00") 
+    insert_measurement(db_conn, 35, "C", 1, "2026-09-10 10:00:00")  
+    insert_machine(db_conn, "MachineB")
+    insert_sensor(db_conn, "Temperature", 2)    
+    insert_measurement(db_conn, 29, "C", 2, "2026-09-10 10:00:00") 
+    insert_measurement(db_conn, 31, "C", 2, "2026-09-10 10:00:00")  
+    machines = get_complete_machines(db_conn)
+    sensors = find_sensors_by_name(machines, "Pressure")
+    assert sensors == []
+
+def test_average_across_multiple_machines(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_sensor(db_conn, "Temperature",1)    
+    insert_measurement(db_conn, 33, "C", 1, "2026-09-10 10:00:00") 
+    insert_measurement(db_conn, 35, "C", 1, "2026-09-10 10:00:00")  
+    insert_machine(db_conn, "MachineB")
+    insert_sensor(db_conn, "Temperature", 2)    
+    insert_measurement(db_conn, 29, "C", 2, "2026-09-10 10:00:00") 
+    insert_measurement(db_conn, 31, "C", 2, "2026-09-10 10:00:00")  
+    machines = get_complete_machines(db_conn)
+    average = get_average_for_sensor_name(machines, "Temperature")
+    assert len(machines) == 2
+    assert machines[1].sensors[0].measurements[0].value == 29
+    assert average == 32
+
+def test_matching_sensors_but_no_measurements(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_sensor(db_conn, "Temperature", 1)   
+    machines = get_complete_machines(db_conn)
+    average = get_average_for_sensor_name(machines, "Temperature")
+    assert average is None
+
+def test_no_matching_sensor(db_conn):
+    insert_machine(db_conn, "MachineA")
+    insert_sensor(db_conn, "Temperature", 1)    
+    insert_measurement(db_conn, 33, "C", 1, "2026-09-10 10:00:00") 
+    insert_measurement(db_conn, 35, "C", 1, "2026-09-10 10:00:00")  
+    insert_machine(db_conn, "MachineB")
+    insert_sensor(db_conn, "Temperature", 2)    
+    insert_measurement(db_conn, 29, "C", 2, "2026-09-10 10:00:00") 
+    insert_measurement(db_conn, 31, "C", 2, "2026-09-10 10:00:00")  
+    machines = get_complete_machines(db_conn)
+    average = get_average_for_sensor_name(machines, "temperature")
+    assert average is None
+
+
+
+
